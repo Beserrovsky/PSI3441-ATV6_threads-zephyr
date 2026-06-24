@@ -1,3 +1,56 @@
+# Relatório — Threads: ADC, Botão com Interrupção e Acelerômetro
+
+## Nome
+Felipe Beserra de Oliveira
+
+---
+
+## Número USP
+13683702
+
+---
+
+## Respostas, comentários e análises
+
+### Descrição da Atividade
+
+O enunciado pede a integração de três periféricos em um único projeto multi-thread no Zephyr RTOS:
+
+1. **ADC** — leitura analógica em PTB0 (`ADC0_SE8`), a mesma fiação de teste usada na Atividade 4, lida agora via driver `adc.h` do Zephyr (canal configurado via `adc_channel_setup`/`adc_read`), em vez de registradores diretos.
+2. **Botão com interrupção** — o botão onboard `SW0` (`user_button_0`, PTA16) configurado com pull-up e interrupção na borda de descida.
+3. **Acelerômetro MMA8451Q** — sensor onboard da FRDM-KL25Z, acessado via I2C0 (PTE24/PTE25) através da API genérica de sensores do Zephyr (`sensor_sample_fetch`/`sensor_channel_get`). O node `mma8451q` (alias `accel0`) já vem habilitado por padrão na definição da placa, sem necessidade de overlay.
+
+### Threads
+
+- **`thread_adc`** (prioridade 5): lê o canal ADC a cada 500ms e imprime o valor bruto e em mV.
+- **`thread_accel`** (prioridade 5): lê os eixos X/Y/Z do acelerômetro a cada 1000ms, mas só imprime o resultado quando o modo atual é "Completo" — evitando leituras I2C desnecessárias quando o usuário só quer ver o ADC.
+
+### Botão e troca de modo
+
+O botão é configurado com interrupção (`GPIO_INT_EDGE_FALLING`, conforme o tutorial de referência). A cada pressionamento, a ISR `button_isr` inverte a flag `modo_completo` e imprime a mudança de modo:
+
+- **Modo ADC** (estado inicial): só os valores do ADC aparecem na serial.
+- **Modo Completo**: ADC e acelerômetro aparecem juntos.
+
+### Item 6/7 — Prioridades iguais vs. diferentes
+
+O código inicial usa as duas threads com a **mesma prioridade** (`PRIO_THREAD_ADC = PRIO_THREAD_ACCEL = 5`), conforme pedido no item 6. Para o experimento do item 7, basta alterar uma das macros no topo do `main.c` (por exemplo, `PRIO_THREAD_ADC` para 3, deixando-a mais prioritária) e reobservar a saída serial.
+
+**Comportamento esperado:**
+
+- **Prioridades iguais:** como as duas threads bloqueiam periodicamente em `k_msleep()`, o escalonador as intercala de forma cooperativa por ordem de "despertar" — não há disputa real, já que nenhuma delas monopoliza a CPU. As leituras de ADC (500ms) aparecem com o dobro da frequência das do acelerômetro (1000ms), entrelaçadas na serial.
+- **ADC com prioridade mais alta:** se a leitura do acelerômetro (transação I2C, mais lenta) estiver em andamento quando a thread do ADC "desperta", o escalonador preempta a thread do acelerômetro imediatamente; a leitura do ADC nunca é atrasada pelo I2C, ao custo de um pequeno atraso na thread do acelerômetro.
+- **Acelerômetro com prioridade mais alta:** o inverso — a leitura do ADC pode ser postergada caso a transação I2C do acelerômetro esteja em andamento no instante em que a thread do ADC deveria rodar.
+
+Como ambas as threads passam a maior parte do tempo dormindo (`k_msleep`), a diferença de prioridade só importa nos instantes raros em que as duas "despertam" quase simultaneamente — diferente do clássico exemplo de starvation (thread sem `k_sleep()`), aqui não há monopolização de CPU em nenhum dos casos.
+
+**Validação física pendente:** a confirmação empírica desse comportamento (timestamps reais na serial com cada combinação de prioridade, e o teste do botão alternando os modos) depende de flashar o binário na placa e observar a saída — não exige nenhuma modificação de hardware, apenas executar e registrar os logs.
+
+---
+
+## Código (main.c)
+
+```c
 /*
  * Atividade 6 — Threads: ADC + Botao com Interrupcao + Acelerometro
  * FRDM-KL25Z: uma thread le o ADC (PTB0 / ADC0_SE8) a cada 500ms e
@@ -40,9 +93,6 @@ static void button_isr(const struct device *dev, struct gpio_callback *cb, uint3
     printk("\n[Botao] Modo: %s\n", modo_completo ? "COMPLETO (ADC + Acelerometro)" : "ADC");
 }
 
-/* ----------------------------------------------------
- * Thread ADC — le o canal 8 (PTB0) a cada 500ms
- * ---------------------------------------------------- */
 void thread_adc(void *p1, void *p2, void *p3)
 {
     int16_t sample_buffer;
@@ -76,10 +126,6 @@ void thread_adc(void *p1, void *p2, void *p3)
     }
 }
 
-/* ----------------------------------------------------
- * Thread Acelerometro — le X/Y/Z a cada 1000ms; so exibe
- * quando o modo atual e "Completo"
- * ---------------------------------------------------- */
 void thread_accel(void *p1, void *p2, void *p3)
 {
     struct sensor_value ax, ay, az;
@@ -123,3 +169,12 @@ int main(void)
 
     return 0;
 }
+```
+
+---
+
+## Repositório
+
+```text
+https://github.com/Beserrovsky/PSI3441-ATV6_threads-zephyr
+```
