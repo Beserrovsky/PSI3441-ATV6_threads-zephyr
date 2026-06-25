@@ -12,11 +12,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/Amanda/Documents/PlatformIO/Projects/260510-171147-zephyr-blink/.pio/build/frdm_kl25z/firmware.elf",
+            "executable": "C:/Users/Beserra/Documents/PSI3441_Arquitetura_de_Sistemas_Embarcados_2026/PSI3441-ATV6_threads-zephyr/.pio/build/frdm_kl25z/firmware.elf",
             "projectEnvName": "frdm_kl25z",
-            "toolchainBinDir": "C:/Users/Amanda/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/Beserra/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Amanda/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd",
+            "svdPath": "C:/Users/Beserra/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug"
@@ -26,21 +26,21 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/Amanda/Documents/PlatformIO/Projects/260510-171147-zephyr-blink/.pio/build/frdm_kl25z/firmware.elf",
+            "executable": "C:/Users/Beserra/Documents/PSI3441_Arquitetura_de_Sistemas_Embarcados_2026/PSI3441-ATV6_threads-zephyr/.pio/build/frdm_kl25z/firmware.elf",
             "projectEnvName": "frdm_kl25z",
-            "toolchainBinDir": "C:/Users/Amanda/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/Beserra/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Amanda/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd"
+            "svdPath": "C:/Users/Beserra/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/Amanda/Documents/PlatformIO/Projects/260510-171147-zephyr-blink/.pio/build/frdm_kl25z/firmware.elf",
+            "executable": "C:/Users/Beserra/Documents/PSI3441_Arquitetura_de_Sistemas_Embarcados_2026/PSI3441-ATV6_threads-zephyr/.pio/build/frdm_kl25z/firmware.elf",
             "projectEnvName": "frdm_kl25z",
-            "toolchainBinDir": "C:/Users/Amanda/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/Beserra/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Amanda/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd",
+            "svdPath": "C:/Users/Beserra/.platformio/platforms/freescalekinetis/misc/svd/MKL25Z4.svd",
             "loadMode": "manual"
         }
     ]
