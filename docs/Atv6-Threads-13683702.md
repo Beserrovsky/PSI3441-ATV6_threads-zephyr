@@ -1,12 +1,29 @@
-# Relatório — Threads: ADC, Botão com Interrupção e Acelerômetro
+# Relatório — Threads: ADC, Botão com Interrupção e Acelerômetro (RELATÓRIO PARCIAL)
 
 ## Nome
+
 Felipe Beserra de Oliveira
 
 ---
 
 ## Número USP
+
 13683702
+
+---
+
+## Status: relatório parcial
+
+O código foi escrito a partir do enunciado e **compila sem erros**, mas ainda não foi flashado na placa física. A seção "Item 6/7 — Prioridades iguais vs. diferentes" descreve abaixo o comportamento **esperado/teórico** com base no funcionamento do escalonador do Zephyr, não um resultado observado — falta a validação empírica com timestamps reais da serial, em ambas as configurações de prioridade, e o teste do botão alternando os modos. Além disso, **a FRDM-KL25Z não possui um botão de usuário físico (SW0) onboard** — PTA16 é apenas um pino de GPIO exposto, sem pushbutton soldado; o alias `sw0` no devicetree da placa é enganoso nesse ponto. É necessário um botão ou fio externo entre PTA16 e GND para acionar a troca de modo.
+
+### TODO — pendências para finalizar este relatório
+
+1. Ligar um botão (ou um fio) entre PTA16 e GND — não há SW0 físico na placa; o pull-up interno já mantém o pino em nível alto em repouso.
+2. Flashar o binário na FRDM-KL25Z (`pio.exe run --target upload`).
+3. Acionar a ligação PTA16–GND e confirmar na saída serial a alternância entre "Modo ADC" e "Modo Completo".
+4. Capturar a saída serial por um período representativo com `PRIO_THREAD_ADC = PRIO_THREAD_ACCEL = 5` (configuração inicial, prioridades iguais).
+5. Alterar `PRIO_THREAD_ADC` (ou `PRIO_THREAD_ACCEL`) para um valor diferente no topo do `main.c`, recompilar, flashar e capturar nova saída serial.
+6. Substituir a seção "Comportamento esperado" (hoje teórica) pela análise comparativa real, com trechos de log de cada configuração de prioridade.
 
 ---
 
@@ -17,7 +34,7 @@ Felipe Beserra de Oliveira
 O enunciado pede a integração de três periféricos em um único projeto multi-thread no Zephyr RTOS:
 
 1. **ADC** — leitura analógica em PTB0 (`ADC0_SE8`), a mesma fiação de teste usada na Atividade 4, lida agora via driver `adc.h` do Zephyr (canal configurado via `adc_channel_setup`/`adc_read`), em vez de registradores diretos.
-2. **Botão com interrupção** — o botão onboard `SW0` (`user_button_0`, PTA16) configurado com pull-up e interrupção na borda de descida.
+2. **Botão com interrupção** — em PTA16 (alias `sw0`/`user_button_0` no devicetree da placa), configurado com pull-up interno e interrupção na borda de descida. **Atenção:** apesar do alias `sw0` sugerir um botão onboard, a FRDM-KL25Z não possui um pushbutton de usuário fisicamente soldado nesse pino (a tabela oficial de E/S da placa lista apenas ADC, LEDs, UART e I2C) — é necessário ligar um botão ou um fio externo entre PTA16 e GND para gerar a borda de descida.
 3. **Acelerômetro MMA8451Q** — sensor onboard da FRDM-KL25Z, acessado via I2C0 (PTE24/PTE25) através da API genérica de sensores do Zephyr (`sensor_sample_fetch`/`sensor_channel_get`). O node `mma8451q` (alias `accel0`) já vem habilitado por padrão na definição da placa, sem necessidade de overlay.
 
 ### Threads
@@ -27,12 +44,12 @@ O enunciado pede a integração de três periféricos em um único projeto multi
 
 ### Botão e troca de modo
 
-O botão é configurado com interrupção (`GPIO_INT_EDGE_FALLING`, conforme o tutorial de referência). A cada pressionamento, a ISR `button_isr` inverte a flag `modo_completo` e imprime a mudança de modo:
+O botão é configurado com interrupção (`GPIO_INT_EDGE_FALLING`, conforme o tutorial de referência). Como a FRDM-KL25Z não tem um botão de usuário físico em PTA16, o acionamento real depende de ligar um botão (ou simplesmente um fio) entre PTA16 e GND — o pull-up interno já mantém o pino em nível alto em repouso. A cada acionamento, a ISR `button_isr` inverte a flag `modo_completo` e imprime a mudança de modo:
 
 - **Modo ADC** (estado inicial): só os valores do ADC aparecem na serial.
 - **Modo Completo**: ADC e acelerômetro aparecem juntos.
 
-### Item 6/7 — Prioridades iguais vs. diferentes
+### Item 6/7 — Prioridades iguais vs. diferentes (análise teórica, ainda não validada na placa)
 
 O código inicial usa as duas threads com a **mesma prioridade** (`PRIO_THREAD_ADC = PRIO_THREAD_ACCEL = 5`), conforme pedido no item 6. Para o experimento do item 7, basta alterar uma das macros no topo do `main.c` (por exemplo, `PRIO_THREAD_ADC` para 3, deixando-a mais prioritária) e reobservar a saída serial.
 
@@ -44,7 +61,7 @@ O código inicial usa as duas threads com a **mesma prioridade** (`PRIO_THREAD_A
 
 Como ambas as threads passam a maior parte do tempo dormindo (`k_msleep`), a diferença de prioridade só importa nos instantes raros em que as duas "despertam" quase simultaneamente — diferente do clássico exemplo de starvation (thread sem `k_sleep()`), aqui não há monopolização de CPU em nenhum dos casos.
 
-**Validação física pendente:** a confirmação empírica desse comportamento (timestamps reais na serial com cada combinação de prioridade, e o teste do botão alternando os modos) depende de flashar o binário na placa e observar a saída — não exige nenhuma modificação de hardware, apenas executar e registrar os logs.
+**Validação física pendente:** a confirmação empírica desse comportamento (timestamps reais na serial com cada combinação de prioridade, e o teste do botão alternando os modos) depende de flashar o binário na placa e observar a saída. Diferente das demais leituras (ADC, acelerômetro), o botão **exige uma modificação de hardware**: ligar um fio/botão externo entre PTA16 e GND, já que não há SW0 físico na FRDM-KL25Z.
 
 ---
 
@@ -55,8 +72,9 @@ Como ambas as threads passam a maior parte do tempo dormindo (`k_msleep`), a dif
  * Atividade 6 — Threads: ADC + Botao com Interrupcao + Acelerometro
  * FRDM-KL25Z: uma thread le o ADC (PTB0 / ADC0_SE8) a cada 500ms e
  * outra le o acelerometro onboard MMA8451Q a cada 1000ms. O botao
- * onboard (SW0) alterna, via interrupcao, entre "Modo ADC" (so ADC)
- * e "Modo Completo" (ADC + acelerometro).
+ * (PTA16, pull-up interno, requer fio/botao externo para GND — a
+ * FRDM-KL25Z nao tem um SW0 fisico) alterna, via interrupcao, entre
+ * "Modo ADC" (so ADC) e "Modo Completo" (ADC + acelerometro).
  */
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -72,7 +90,8 @@ Como ambas as threads passam a maior parte do tempo dormindo (`k_msleep`), a dif
 #define ADC_RESOLUTION      12
 #define ADC_VREF_MV         3300
 
-/* Botao onboard (SW0/PTA16) e acelerometro onboard (MMA8451Q, I2C0) */
+/* Botao em PTA16 (alias "sw0" no devicetree, sem botao fisico onboard —
+ * requer fio/botao externo para GND) e acelerometro onboard (MMA8451Q, I2C0) */
 #define BUTTON_NODE         DT_NODELABEL(user_button_0)
 #define ACCEL_NODE          DT_NODELABEL(mma8451q)
 
@@ -165,7 +184,7 @@ int main(void)
     gpio_add_callback(button.port, &button_cb_data);
 
     printk("=== Atividade 6 - ADC + Botao + Acelerometro ===\n");
-    printk("Modo inicial: ADC (pressione o botao SW0 para alternar)\n");
+    printk("Modo inicial: ADC (conecte PTA16 a GND para alternar)\n");
 
     return 0;
 }

@@ -2,8 +2,9 @@
  * Atividade 6 — Threads: ADC + Botao com Interrupcao + Acelerometro
  * FRDM-KL25Z: uma thread le o ADC (PTB0 / ADC0_SE8) a cada 500ms e
  * outra le o acelerometro onboard MMA8451Q a cada 1000ms. O botao
- * onboard (SW0) alterna, via interrupcao, entre "Modo ADC" (so ADC)
- * e "Modo Completo" (ADC + acelerometro).
+ * (PTA16, pull-up interno, requer fio/botao externo para GND — a
+ * FRDM-KL25Z nao tem um SW0 fisico) alterna, via interrupcao, entre
+ * "Modo ADC" (so ADC) e "Modo Completo" (ADC + acelerometro).
  */
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -19,7 +20,8 @@
 #define ADC_RESOLUTION      12
 #define ADC_VREF_MV         3300
 
-/* Botao onboard (SW0/PTA16) e acelerometro onboard (MMA8451Q, I2C0) */
+/* Botao em PTA16 (alias "sw0" no devicetree, sem botao fisico onboard —
+ * requer fio/botao externo para GND) e acelerometro onboard (MMA8451Q, I2C0) */
 #define BUTTON_NODE         DT_NODELABEL(user_button_0)
 #define ACCEL_NODE          DT_NODELABEL(mma8451q)
 
@@ -119,7 +121,7 @@ int main(void)
     gpio_add_callback(button.port, &button_cb_data);
 
     printk("=== Atividade 6 - ADC + Botao + Acelerometro ===\n");
-    printk("Modo inicial: ADC (pressione o botao SW0 para alternar)\n");
+    printk("Modo inicial: ADC (conecte PTA16 a GND para alternar)\n");
 
     return 0;
 }
